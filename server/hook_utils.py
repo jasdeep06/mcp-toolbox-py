@@ -19,3 +19,4 @@ async def run_hook(hook: Callable, params: Dict[str, Any]) -> None:
     except Exception as exc:
         traceback.print_exc()
         raise
+

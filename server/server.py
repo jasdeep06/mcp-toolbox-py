@@ -33,8 +33,9 @@ class ToolboxServer:
         # Create tools
         self.tools = self.config.create_tools(self.sources)
 
-        #connect to metadata source
-        self.metadata_source = await connect_to_metadata_source(self.config.metadata_source)
+        if self.config.metadata_source:
+            #connect to metadata source
+            self.metadata_source = await connect_to_metadata_source(self.config.metadata_source)
 
         # attach pre_hook to tools invoke
         self.attach_pre_hook()
