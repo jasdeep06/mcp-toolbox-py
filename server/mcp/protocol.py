@@ -12,8 +12,8 @@ logger = logging.getLogger(__name__)
 class McpRequest:
     """MCP request structure."""
     jsonrpc: str
-    id: Any
     method: str
+    id: Optional[Any] = 999
     params: Optional[Dict[str, Any]] = None
 
 @dataclass 
@@ -21,7 +21,7 @@ class McpResponse:
     """MCP response structure."""
     jsonrpc: str
     id: Any
-    # error: Optional[Dict[str, Any]]
+    # error: Optional[Dict[str, Any]] = {}
     result: Optional[Any] = None
 
 class McpServer:
@@ -39,8 +39,10 @@ class McpServer:
     async def handle_request(self, request_data: str, toolset_name: str = "") -> Optional[str]:
         """Handle incoming MCP request for a specific toolset."""
         try:
+            logger.info(f"Request {request_data}")
             request_json = json.loads(request_data)
             request = McpRequest(**request_json)
+            logger.info(f"Listing :")
             response = await self._process_request(request, toolset_name)
             logger.info(f"Response: {response}")
             if response:
@@ -48,6 +50,8 @@ class McpServer:
             return None
             
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             error_response = McpResponse(
                 jsonrpc="2.0",
                 id=None,
@@ -61,7 +65,11 @@ class McpServer:
             initialize_response = await self._handle_initialize(request)
             logger.info(f"Initialize response: {initialize_response}")
             return initialize_response
+        elif request.method == "notifications/initialized":
+            return await self._handle_notifications(request)
+
         elif request.method == "tools/list":
+            logger.info(f"Listing :")
             return await self._handle_list_tools(request, toolset_name)
         elif request.method == "tools/call":
             return await self._handle_call_tool(request, toolset_name)
@@ -85,9 +93,17 @@ class McpServer:
                 "serverInfo": {"name": "Python MCP Toolbox", "version": "1.0.0"}
             }
         )
+
+    async def _handle_notifications(self, request: McpRequest) -> McpResponse:
+        return McpResponse(
+            jsonrpc="2.0",
+            id=request.id,
+            result={}
+        )
     
     async def _handle_list_tools(self, request: McpRequest, toolset_name: str) -> McpResponse:
         """Handle tools list request for a specific toolset."""
+        print(self.toolsets)
         if toolset_name not in self.toolsets:
             return McpResponse(
                 jsonrpc="2.0",

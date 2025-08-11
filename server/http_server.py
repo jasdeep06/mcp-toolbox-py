@@ -82,6 +82,7 @@ class HttpMcpServer:
             # Read request body
             body = await request.text()
             
+            access_logger.info("Calling.....")
             # Process MCP request
             response_data = await self.mcp_server.handle_request(body, toolset_name)
 
