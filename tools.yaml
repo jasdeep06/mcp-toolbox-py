@@ -6,12 +6,49 @@ sources:
     database: neondb
     user: neondb_owner
     password: npg_OqZYgaH46CQb
-metadata_source:
-  host: ep-ancient-shape-a1kjibq3-pooler.ap-southeast-1.aws.neon.tech
-  port: 5432        # Neon uses the standard port unless noted otherwise
-  database: neondb
-  user: neondb_owner
-  password: npg_OqZYgaH46CQb
+
+  my-bq-source:
+    kind: bigquery
+    project_id: spartan-amphora-431707-u7
+    google_application_credentials: spartan-amphora-431707-u7-4ec657400505.json
+    client_id: "your-client-id"  # Replace with your actual client ID
+    client_secret: "your-client-secret"  # Replace with your actual client secret
+    sso_login_url: "https://example.com/sso-login"  # Replace with your actual SSO login URL
+
+  my-mysql-source:
+    kind: mysql
+    host: localhost
+    port: 3306
+    user: svc_reader
+    password: 123456789@q
+
+  my-oracle-source:
+    kind: oracle
+    host: localhost
+    port: 1521
+    service_name: XEPDB1
+    user: test_user
+    password: password
+
+  my-mssql-source:
+    kind: mssql
+    driver: ODBC Driver 17 for SQL Server
+    server: localhost
+    database: test
+    user: user_finance
+    password: "123456"
+    encrypt: "yes"
+    trust_server_certificate: "yes"
+
+
+# metadata_source:
+#   host: ep-ancient-shape-a1kjibq3-pooler.ap-southeast-1.aws.neon.tech
+#   port: 5432        # Neon uses the standard port unless noted otherwise
+#   database: neondb
+#   user: neondb_owner
+#   password: npg_OqZYgaH46CQb
+
+
 tools:
   users-in-workspace:
     kind: postgres-sql
@@ -28,7 +65,7 @@ tools:
         ON public.user.id = public.user_workspace_link.user_id
       WHERE workspace_id = $1;
     # pre_hook: pre-test:func1
-    datasource_ids: "64e65350-30ae-4f50-a133-a52f049213cb,657c66ce-6589-419a-9bcf-cd099deeb6eb"
+    # datasource_ids: "64e65350-30ae-4f50-a133-a52f049213cb,657c66ce-6589-419a-9bcf-cd099deeb6eb"
 
   domains-in-workspace:
     kind: postgres-sql
@@ -60,10 +97,85 @@ tools:
       WHERE user_id = $1;
     datasource_ids: "7c07b8ac-0d14-4f44-8c34-43b9fc696bc0,7f8b474f-0fcd-48e8-b15d-54828cb58c01"
 
+  bigquery-sql-tool:
+    kind: bigquery-sql
+    source: my-bq-source
+    description: Execute a SQL query on BigQuery.
+    parameters:
+      - name: col1
+        type: string
+        description: The SQL query to execute.
+      - name: col2
+        type: string
+        description: The SQL query to execute.
+    statement: |
+      SELECT *
+      FROM spartan-amphora-431707-u7.dataset2.table2
+      WHERE column1 = ? or column2 = ?;
+    # datasource_ids: "7c07b8ac-0d14-4f44-8c34-43b9fc696bc0,7f8b474f-0fcd-48e8-b15d-54828cb58c01"
+  
+  mysql-sql-tool:
+    kind: mysql-sql
+    source: my-mysql-source
+    description: Execute a SQL query on MySQL.
+    parameters:
+      - name: product_name
+        type: string
+        description: The name of the product.
+      - name: product_id
+        type: integer
+        description: The ID of the product.
+    statement: |
+      SELECT * FROM orders.order_details
+      WHERE product_name = %s AND product_id = %s;
+
+  oracle-sql-tool:
+    kind: oracle-sql
+    source: my-oracle-source
+    description: Execute a SQL query on Oracle.
+    parameters:
+      - name: id
+        type: integer
+        description: The ID of the record to retrieve.
+      - name: name
+        type: string
+        description: The name of the record to retrieve.
+    statement: |
+      SELECT *
+      FROM employees
+      WHERE employee_id = :id or first_name = :name
+
+  mssql-sql-tool:
+    kind: mssql-sql
+    source: my-mssql-source
+    description: Execute a SQL query on MSSQL.
+    parameters:
+      - name: account_id
+        type: integer
+        description: The ID of the employee.
+      - name: account_name
+        type: string
+        description: The department of the employee.
+    statement: |
+      SELECT * from Finance.Accounts 
+      where AccID = ? or AccName = ? ;
 
 toolsets:
   user-workspace-server:
     - users-in-workspace
     - workspace-favourited-by-user
+
   workspace-domain-server:
     - domains-in-workspace
+
+  bigquery-server:
+    - bigquery-sql-tool
+  
+  mysql-server:
+    - mysql-sql-tool
+
+  oracle-server:
+    - oracle-sql-tool
+
+  mssql-server:
+    - mssql-sql-tool
