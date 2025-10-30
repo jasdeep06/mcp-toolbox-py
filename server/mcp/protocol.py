@@ -74,6 +74,7 @@ class McpServer:
         elif request.method == "tools/call":
             return await self._handle_call_tool(request, toolset_name)
         else:
+            print("meth ", request.method)
             return McpResponse(
                 jsonrpc="2.0",
                 id=request.id,

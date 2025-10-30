@@ -1,0 +1,342 @@
+sources:
+  credit-card-origination-connection:
+    kind: http
+    baseUrl: https://origination-tools.speakmultiapp.com
+    timeout: 120s
+metadata_source:
+  host: ep-ancient-shape-a1kjibq3-pooler.ap-southeast-1.aws.neon.tech
+  port: 5432
+  database: neondb
+  user: neondb_owner
+  password: npg_OqZYgaH46CQb
+tools:
+  risk-model-v1:
+    kind: http
+    source: credit-card-origination-connection
+    description: Combine KYC/AML/IDV, credit, fraud, and income signals into a unified
+      risk score and route suggestion.
+    path: /tools/risk_model_v1
+    method: POST
+    bodyParams:
+    - name: kyc_pass
+      type: boolean
+      required: true
+      description: KYC result
+    - name: aml_flags
+      type: array
+      required: true
+      description: Array of AML hits/flags (strings)
+    - name: idv_pass
+      type: boolean
+      required: true
+      description: ID verification result
+    - name: score
+      type: number
+      required: true
+      description: "Credit score (300\u2013900 typical)"
+    - name: fraud_score
+      type: number
+      required: true
+      description: Fraud score [0..1]
+    - name: income_verified
+      type: boolean
+      default: false
+      required: false
+      description: Income verification status
+    - name: monthly_income
+      type: number
+      default: 0
+      required: false
+      description: Monthly income amount if verified
+    requestBody: |-
+      {
+        "kyc_pass": {{.kyc_pass}},
+        "aml_flags": {{.aml_flags}},
+        "idv_pass": {{.idv_pass}},
+        "score": {{.score}},
+        "fraud_score": {{.fraud_score}},
+        "income_verified": {{.income_verified}},
+        "monthly_income": {{.monthly_income}}
+      }
+  credit-bureau-v1:
+    kind: http
+    source: credit-card-origination-connection
+    description: Pull credit file/score from a bureau (Experian/Equifax/TransUnion).
+      Returns score and thin-file indicator.
+    path: /tools/credit_bureau_v1
+    method: POST
+    bodyParams:
+    - name: ssn_or_national_id
+      type: string
+      required: true
+      description: SSN or national ID of the applicant
+    - name: bureau
+      type: string
+      default: experian
+      required: false
+      description: 'Credit bureau: ''equifax'' | ''experian'' | ''transunion'''
+    requestBody: |-
+      {
+        "ssn_or_national_id": "{{.ssn_or_national_id}}",
+        "bureau": "{{.bureau}}"
+      }
+  fraud-risk-v1:
+    kind: http
+    source: credit-card-origination-connection
+    description: Compute fraud risk using device, IP, email, and phone signals. Returns
+      a normalized fraud score [0..1].
+    path: /tools/fraud_risk_v1
+    method: POST
+    bodyParams:
+    - name: user_agent
+      type: string
+      default: ''
+      required: false
+      description: HTTP user agent string
+    - name: ip
+      type: string
+      default: ''
+      required: false
+      description: Client IP address (IPv4/IPv6)
+    - name: device_id
+      type: string
+      default: ''
+      required: false
+      description: Device identifier if available
+    - name: email
+      type: string
+      default: ''
+      required: false
+      description: Email address
+    - name: phone
+      type: string
+      default: ''
+      required: false
+      description: Phone number (E.164 preferred)
+    requestBody: |-
+      {
+        "device": { "user_agent": "{{.user_agent}}", "ip": "{{.ip}}", "device_id": "{{.device_id}}" },
+        "ip": "{{.ip}}",
+        "email": "{{.email}}",
+        "phone": "{{.phone}}"
+      }
+  income-verify-v1:
+    kind: http
+    source: credit-card-origination-connection
+    description: Verify income via an external provider (bank link or statements).
+      Respects user consent.
+    path: /tools/income_verify_v1
+    method: POST
+    bodyParams:
+    - name: consent
+      type: boolean
+      required: true
+      description: Explicit consent to perform income verification
+    - name: bank_link_token
+      type: string
+      default: ''
+      required: false
+      description: Provider-specific bank link token (if applicable)
+    requestBody: |-
+      {
+        "consent": {{.consent}},
+        "bank_link_token": "{{.bank_link_token}}"
+      }
+  idv-check-v1:
+    kind: http
+    source: credit-card-origination-connection
+    description: Perform ID verification (document + optional selfie/liveness). Returns
+      IDV pass flag, signals, and reference ID.
+    path: /tools/idv_check_v1
+    method: POST
+    bodyParams:
+    - name: doc_images
+      type: array
+      required: true
+      description: Array of document image URLs or base64 strings
+    - name: selfie
+      type: string
+      default: ''
+      required: false
+      description: Selfie image (URL or base64) for liveness/face match
+    requestBody: |-
+      {
+        "doc_images": {{.doc_images}},
+        "selfie": "{{.selfie}}"
+      }
+  kyc-aml-v1:
+    kind: http
+    source: credit-card-origination-connection
+    description: Run KYC identity checks and AML screening for an applicant. Returns
+      pass/fail flags and a reference ID.
+    path: /tools/kyc_aml_v1
+    method: POST
+    bodyParams:
+    - name: first_name
+      type: string
+      required: true
+      description: Applicant's first name
+    - name: last_name
+      type: string
+      required: true
+      description: Applicant's last name
+    - name: middle_name
+      type: string
+      default: ''
+      required: false
+      description: Applicant's middle name (optional)
+    - name: dob
+      type: string
+      required: true
+      description: Date of birth (YYYY-MM-DD)
+    - name: email
+      type: string
+      required: true
+      description: Email address
+    - name: phone
+      type: string
+      required: true
+      description: Phone number in E.164 where possible
+    - name: address_line1
+      type: string
+      required: true
+      description: Address line 1
+    - name: address_line2
+      type: string
+      default: ''
+      required: false
+      description: Address line 2 (optional)
+    - name: city
+      type: string
+      required: true
+      description: City
+    - name: state
+      type: string
+      default: ''
+      required: false
+      description: State/Province/Region
+    - name: postal_code
+      type: string
+      required: true
+      description: Postal/ZIP code
+    - name: country
+      type: string
+      required: true
+      description: ISO country name or code
+    - name: doc_ids
+      type: array
+      default: []
+      required: false
+      description: Array of document IDs; objects with {type,value}
+    requestBody: |-
+      {
+        "person": {
+          "first_name": "{{.first_name}}",
+          "last_name": "{{.last_name}}",
+          "middle_name": "{{.middle_name}}",
+          "dob": "{{.dob}}",
+          "email": "{{.email}}",
+          "phone": "{{.phone}}",
+          "address": {
+            "line1": "{{.address_line1}}",
+            "line2": "{{.address_line2}}",
+            "city": "{{.city}}",
+            "state": "{{.state}}",
+            "postal_code": "{{.postal_code}}",
+            "country": "{{.country}}"
+          },
+          "doc_ids": {{.doc_ids}}
+        }
+      }
+  audit-log-v1:
+    kind: http
+    source: credit-card-origination-connection
+    description: Append an immutable audit record for compliance and traceability.
+    path: /tools/audit_log_v1
+    method: POST
+    bodyParams:
+    - name: event
+      type: string
+      required: true
+      description: Short event name (e.g., 'offer_created')
+    - name: context
+      type: object
+      default: {}
+      required: false
+      description: Arbitrary contextual data to store with the event
+    requestBody: |-
+      {
+        "event": "{{.event}}",
+        "context": {{.context}}
+      }
+  notify-v1:
+    kind: http
+    source: credit-card-origination-connection
+    description: Send a templated notification (email/SMS/push) to the applicant or
+      back office.
+    path: /tools/notify_v1
+    method: POST
+    bodyParams:
+    - name: channel
+      type: string
+      required: true
+      description: 'Delivery channel: ''email'' | ''sms'' | ''push'''
+    - name: to
+      type: string
+      required: true
+      description: Recipient address/number/device token
+    - name: template_id
+      type: string
+      required: true
+      description: Template identifier
+    - name: data
+      type: object
+      default: {}
+      required: false
+      description: Template variables map
+    requestBody: |-
+      {
+        "channel": "{{.channel}}",
+        "to": "{{.to}}",
+        "template_id": "{{.template_id}}",
+        "data": {{.data}}
+      }
+  underwriting-task-v1:
+    kind: http
+    source: credit-card-origination-connection
+    description: Create a manual underwriting task with all supporting evidence for
+      referral cases.
+    path: /tools/underwriting_task_v1
+    method: POST
+    bodyParams:
+    - name: application
+      type: object
+      required: true
+      description: Original/normalized application payload
+    - name: evidence
+      type: object
+      required: true
+      description: Evidence bundle (kyc/idv/bureau/fraud/income)
+    requestBody: |-
+      {
+        "application": {{.application}},
+        "evidence": {{.evidence}}
+      }
+toolsets:
+  compute-risk-and-suggest-decision-toolset:
+  - risk-model-v1
+  credit-bureau-pull-toolset:
+  - credit-bureau-v1
+  fraud-and-income-signals-toolset:
+  - fraud-risk-v1
+  - income-verify-v1
+  kyc-aml-and-idv-toolset:
+  - idv-check-v1
+  - kyc-aml-v1
+  kyc-aml-idv-toolset:
+  - idv-check-v1
+  - kyc-aml-v1
+  manual-review-toolset:
+  - audit-log-v1
+  - notify-v1
+  - underwriting-task-v1

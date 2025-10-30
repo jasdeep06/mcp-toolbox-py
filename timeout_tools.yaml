@@ -1,0 +1,25 @@
+sources:
+  credit-card-origination-connection:
+    kind: http
+    baseUrl: https://origination-tools.speakmultiapp.com
+    timeout: 120s
+metadata_source:
+  host: ep-ancient-shape-a1kjibq3-pooler.ap-southeast-1.aws.neon.tech
+  port: 5432
+  database: neondb
+  user: neondb_owner
+  password: npg_OqZYgaH46CQb
+tools:
+  timeout-tool:
+    kind: http
+    source: credit-card-origination-connection
+    description: timeout tool
+    path: /tools/sleep
+    method: GET
+    queryParams:
+    - name: seconds
+      type: string
+      description: seconds
+toolsets:
+  test:
+  - timeout-tool

@@ -133,6 +133,8 @@ class HttpTool(Tool):
         clean_path = final_path.lstrip('/')
         full_url = f"{base_url}/{clean_path}"
         
+        print(f"Full URL: {full_url}")
+
         return full_url
     
     def _get_query_params(self, validated_params: Dict[str, Any]) -> Dict[str, Any]:
@@ -165,6 +167,8 @@ class HttpTool(Tool):
                     # Convert Go template syntax {{.param}} to Python ${param}
                     if isinstance(value, (dict, list)):
                         body_values[param.name] = json.dumps(value)
+                    elif isinstance(value, bool):
+                        body_values[param.name] = 'true' if value else 'false'
                     else:
                         body_values[param.name] = value
             
@@ -176,7 +180,8 @@ class HttpTool(Tool):
                 request_data = template.safe_substitute(body_values)
             except KeyError as e:
                 raise ValueError(f"Missing required body parameter in template: {e}")
-                
+            request_json = json.loads(request_data)
+            request_data = None
         elif self.body_params:
             # No template, use params as JSON body
             body_data = {}
@@ -191,21 +196,29 @@ class HttpTool(Tool):
         """Execute the HTTP request with parameters."""
         # Validate parameters
         validated_params = self.parameter_set.validate_values(params)
+
+        print(f"Validated params: {validated_params}")
         
         # Build URL with path parameter substitution
         url = self._build_url(validated_params)
+
+        print(f"Url: {url}")
         
         # Extract query parameters
         query_params = self._get_query_params(validated_params)
-        
+
+        print(f"Query params: {query_params}")
         # Extract header parameters and merge with default headers
         header_params = self._get_header_params(validated_params)
         merged_headers = {**self.headers, **header_params}
-        
+
+        print(f"Merged headers: {merged_headers}")
         # Build request body
         request_data, request_json = self._build_request_body(validated_params)
-        
+
+        print(f"Request data: {request_data}, Request json: {request_json}")
         # Make the HTTP request
+        print(f"Url : {url}, Method : {self.method}, Headers : {merged_headers}, Params : {query_params}, Data : {request_data}, Json : {request_json}")
         try:
             response = await self.source.request(
                 method=self.method,
@@ -215,6 +228,7 @@ class HttpTool(Tool):
                 data=request_data,
                 json=request_json
             )
+            print("HTTP response: ", response)
             
             # Return response data
             data = response.get("data")

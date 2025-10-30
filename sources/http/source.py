@@ -65,6 +65,7 @@ class HttpSource(Source):
     
     async def initialize(self) -> None:
         """Initialize the HTTP session."""
+        print("Setting timeout to ", self.timeout)
         timeout = aiohttp.ClientTimeout(total=self.timeout)
         self.session = aiohttp.ClientSession(
             headers=self.default_headers,

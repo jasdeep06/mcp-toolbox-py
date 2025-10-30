@@ -67,11 +67,13 @@ class ToolboxServer:
                     if hook:
                         await run_hook(_hook, params)
                     result = await _orig_invoke(params)
+                    print("from invoke ",result)
                     if _datasource_ids and result[0]['data']:
                         column_descriptions = await get_column_descriptions(self.metadata_source, _datasource_ids)
                         column_list = list(result[0]['data'][0].keys())
                         column_descriptions = resolve_column_descriptions(column_list, column_descriptions)
                         result.append({"column_descriptions": column_descriptions})
+                        print("after resolve ",result)
                     return result
 
                 self.tools[tool].invoke = wrapped_invoke

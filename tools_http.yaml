@@ -5,7 +5,14 @@ sources:
     timeout: 10s
     headers:
       x-api-key: live_oE29eYcFbYyPZ2k7TCaA6k5F0W1dcfedx1S4ADGBz0rUgCuGQZkc7zUFssfytC9l
-
+  dummy-http:
+    kind: http
+    baseUrl: https://dummyjson.com
+    timeout: 30s
+  var-http:
+    kind: http
+    baseUrl: https://origination-tools.speakmultiapp.com
+    timeout: 30s
 tools:
   cat-image-tool:
     kind: http
@@ -24,4 +31,71 @@ tools:
       - name: search
         description: search term
         type: string
+  sample-post-tool:
+    kind: http
+    source: dummy-http
+    description: "Dummy post"
+    path: /posts/add
+    method: POST
+    bodyParams:
+      - name: title
+        description: title of the post
+        type: string
+      - name: userId
+        description: id if the user
+        type: integer
+  var-http:
+    kind: http
+    source: var-http
+    description: this is var
+    path: /test-variants
+    method: POST
+    requestBody: |
+      {
+        "name": "{{.name}}",
+        "age": {{.age}},
+        "books": {{.books}},
+        "pages": {{.pages}},
+        "address": {
+          "address_str": "{{.address_str}}",
+          "city": "{{.city}}"
+        }
+      }
+    bodyParams:
+      - name: name
+        description: name of author
+        type: string
+      - name: age
+        description: age of author
+        type: number
+      - name: books
+        description: list of books
+        type: array
+      - name: pages
+        description: pages in books
+        type: object
+      - name: address_str
+        description: base address
+        type: string
+      - name: city
+        description: city of author
+        type: string
+  
+  timeout-tool:
+    kind: http
+    source: var-http
+    description: this is timeout
+    path: /tools/sleep
+    method: GET
+    timeout: 15s
+    queryParams:
+      - name: seconds
+        description: seconds to sleep
+        type: integer
+
+
+    
+    
+
+
 
