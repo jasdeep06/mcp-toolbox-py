@@ -1,0 +1,37 @@
+sources:
+  local-http:
+    kind: http
+    baseUrl: http://localhost:8000
+    timeout: 10s
+tools:
+  configuration-tool:
+    kind: http
+    source: local-http
+    description: "Apply configuration to array of numbers"
+    path: /process
+    method: POST
+    bodyParams:
+      - name: numbers
+        description: array of numbers
+        type: array
+        items:
+          name: number
+          type: integer
+          description: number
+
+      - name: configuration
+        description: "configuration dictionary with keys  name : string and multiplier: integer"
+        type: map
+    requestBody: |
+      {
+        "numbers": {{json .numbers}}, 
+        "configuration": {{json .configuration}}
+      }
+    
+
+
+    
+    
+
+
+
